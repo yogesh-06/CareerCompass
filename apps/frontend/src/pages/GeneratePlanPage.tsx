@@ -1,6 +1,10 @@
 import { useState } from "react";
 
-import { httpClient, restoreAccessToken } from "../api/http-client";
+import {
+  getApiErrorMessage,
+  httpClient,
+  restoreAccessToken,
+} from "../api/http-client";
 import type { PlanPayload } from "../types/plan";
 
 restoreAccessToken();
@@ -18,73 +22,147 @@ const initialForm: PlanPayload = {
 export function GeneratePlanPage() {
   const [formState, setFormState] = useState<PlanPayload>(initialForm);
   const [result, setResult] = useState<Record<string, unknown> | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
   async function generatePlan() {
     try {
+      setIsSubmitting(true);
       const response = await httpClient.post("/plans/generate", formState);
       setResult(response.data);
       setErrorMessage("");
-    } catch {
-      setErrorMessage("Plan generation failed. Ensure you are logged in.");
+    } catch (error) {
+      setErrorMessage(
+        getApiErrorMessage(
+          error,
+          "Plan generation failed. Ensure you are logged in and all fields are valid.",
+        ),
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
   return (
-    <section className="grid gap-4">
-      <div className="rounded-lg bg-white p-6 shadow">
-        <h2 className="text-xl font-semibold text-slate-900">Generate Plan</h2>
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
-          {Object.entries(formState).map(([fieldName, fieldValue]) => {
-            if (typeof fieldValue === "boolean") {
-              return (
-                <label key={fieldName} className="flex items-center gap-2 text-sm text-slate-700">
-                  <input
-                    type="checkbox"
-                    checked={fieldValue}
-                    onChange={(event) =>
-                      setFormState((previousState) => ({
-                        ...previousState,
-                        [fieldName]: event.target.checked,
-                      }))
-                    }
-                  />
-                  {fieldName}
-                </label>
-              );
-            }
+    <section className="page-stack">
+      <div className="panel">
+        <h2 className="panel-title">Generate Plan</h2>
+        <p className="panel-subtitle">
+          Enter profile and destination details to generate a deterministic
+          assessment plus AI narrative.
+        </p>
+        <div className="form-grid two-columns">
+          <label className="field-label">
+            Origin Country
+            <input
+              className="field-input"
+              value={formState.originCountry}
+              onChange={(event) =>
+                setFormState((previousState) => ({
+                  ...previousState,
+                  originCountry: event.target.value,
+                }))
+              }
+            />
+          </label>
 
-            return (
-              <input
-                key={fieldName}
-                className="rounded border border-slate-300 p-2"
-                value={String(fieldValue)}
-                onChange={(event) =>
-                  setFormState((previousState) => ({
-                    ...previousState,
-                    [fieldName]:
-                      typeof fieldValue === "number"
-                        ? Number(event.target.value)
-                        : event.target.value,
-                  }))
-                }
-              />
-            );
-          })}
+          <label className="field-label">
+            Destination Country
+            <input
+              className="field-input"
+              value={formState.destinationCountry}
+              onChange={(event) =>
+                setFormState((previousState) => ({
+                  ...previousState,
+                  destinationCountry: event.target.value,
+                }))
+              }
+            />
+          </label>
+
+          <label className="field-label">
+            Target Role
+            <input
+              className="field-input"
+              value={formState.targetRole}
+              onChange={(event) =>
+                setFormState((previousState) => ({
+                  ...previousState,
+                  targetRole: event.target.value,
+                }))
+              }
+            />
+          </label>
+
+          <label className="field-label">
+            Salary Expectation
+            <input
+              className="field-input"
+              type="number"
+              value={formState.salaryExpectation}
+              onChange={(event) =>
+                setFormState((previousState) => ({
+                  ...previousState,
+                  salaryExpectation: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+
+          <label className="field-label">
+            Salary Currency Code
+            <input
+              className="field-input"
+              value={formState.salaryCurrencyCode}
+              onChange={(event) =>
+                setFormState((previousState) => ({
+                  ...previousState,
+                  salaryCurrencyCode: event.target.value.toUpperCase(),
+                }))
+              }
+            />
+          </label>
+
+          <label className="field-label">
+            Timeline (months)
+            <input
+              className="field-input"
+              type="number"
+              value={formState.timelineMonths}
+              onChange={(event) =>
+                setFormState((previousState) => ({
+                  ...previousState,
+                  timelineMonths: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
         </div>
-        <button
-          className="mt-4 rounded bg-indigo-600 px-4 py-2 text-white"
-          onClick={generatePlan}
-        >
-          Generate and Save Plan
+
+        <div className="form-grid">
+          <label className="field-checkbox checkbox-row">
+            <input
+              type="checkbox"
+              checked={formState.requiresSponsorship}
+              onChange={(event) =>
+                setFormState((previousState) => ({
+                  ...previousState,
+                  requiresSponsorship: event.target.checked,
+                }))
+              }
+            />
+            Requires Sponsorship
+          </label>
+        </div>
+
+        <button className="primary-button submit-button" onClick={generatePlan} disabled={isSubmitting}>
+          {isSubmitting ? "Generating..." : "Generate and Save Plan"}
         </button>
-        <p className="mt-2 text-sm text-red-600">{errorMessage}</p>
+        {errorMessage ? <p className="error-text">{errorMessage}</p> : null}
       </div>
 
       {result ? (
-        <pre className="overflow-auto rounded-lg bg-slate-900 p-4 text-xs text-green-200">
-          {JSON.stringify(result, null, 2)}
-        </pre>
+        <pre className="result-block">{JSON.stringify(result, null, 2)}</pre>
       ) : null}
     </section>
   );

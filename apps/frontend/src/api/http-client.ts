@@ -6,6 +6,24 @@ export const httpClient = axios.create({
   baseURL,
 });
 
+export function getApiErrorMessage(error: unknown, fallbackMessage: string): string {
+  if (axios.isAxiosError(error)) {
+    const responseMessage = error.response?.data?.message;
+    if (typeof responseMessage === "string" && responseMessage.trim()) {
+      return responseMessage;
+    }
+    if (error.message) {
+      return error.message;
+    }
+  }
+
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+
+  return fallbackMessage;
+}
+
 export function setAccessToken(accessToken: string | null) {
   if (accessToken) {
     httpClient.defaults.headers.common.Authorization = `Bearer ${accessToken}`;
