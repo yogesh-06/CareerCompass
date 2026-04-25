@@ -1,0 +1,22 @@
+{
+  "name": "careercompass-monorepo",
+  "version": "1.0.0",
+  "description": "A monorepo web application that generates personalized international career transition plans with deterministic feasibility checks and AI-generated narrative guidance.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "npm run test --workspaces --if-present",
+    "dev": "npm run dev --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}
