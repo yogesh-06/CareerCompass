@@ -1,0 +1,83 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ConfidenceLevel {
+  verified
+  estimated
+  placeholder
+}
+
+model User {
+  id           String            @id @default(cuid())
+  email        String            @unique
+  passwordHash String
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  savedPlans   SavedCareerPlan[]
+}
+
+model DestinationRoleMarketData {
+  id                          String                  @id @default(cuid())
+  originCountry               String
+  destinationCountry          String
+  targetRole                  String
+  salaryCurrencyCode          String
+  salaryMin                   Int
+  salaryMedian                Int
+  salaryMax                   Int
+  requiredQualifications      String[]
+  languageRequirements        String[]
+  degreeEquivalencyNotes      String
+  typicalHiringDurationMonths Int
+  authorizationWindowMonths   Int
+  marketDemandLevel           String
+  demandScaleDefinition       String
+  workAuthorizationRoutes     WorkAuthorizationRoute[]
+  fieldConfidence             DataFieldConfidence[]
+}
+
+model WorkAuthorizationRoute {
+  id                   String                    @id @default(cuid())
+  marketDataId         String
+  name                 String
+  type                 String
+  sponsorshipRequired  Boolean
+  processingTimeMin    Int
+  processingTimeMax    Int
+  eligibilityCriteria  String[]
+  marketData           DestinationRoleMarketData @relation(fields: [marketDataId], references: [id], onDelete: Cascade)
+}
+
+model DataFieldConfidence {
+  id           String                    @id @default(cuid())
+  marketDataId String
+  fieldName    String
+  confidence   ConfidenceLevel
+  marketData   DestinationRoleMarketData @relation(fields: [marketDataId], references: [id], onDelete: Cascade)
+}
+
+model SavedCareerPlan {
+  id                        String   @id @default(cuid())
+  userId                    String
+  originCountry             String
+  destinationCountry        String
+  targetRole                String
+  salaryExpectation         Int
+  salaryCurrencyCode        String
+  timelineMonths            Int
+  requiresSponsorship       Boolean
+  deterministicAssessment   Json
+  rankedActionPlan          Json
+  dataConfidenceSummary     Json
+  warningMessages           Json
+  llmNarrative              String
+  llmNarrativeStatus        String
+  createdAt                 DateTime @default(now())
+  user                      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
