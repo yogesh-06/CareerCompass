@@ -49,7 +49,9 @@ describe("assessPlanDeterministically", () => {
     );
 
     expect(result.isTimelineFeasible).toBe(false);
-    expect(result.warnings.some((warning) => warning.includes("Timeline conflict"))).toBe(true);
+    expect(
+      result.warningMessages.some((warning) => warning.includes("Timeline conflict")),
+    ).toBe(true);
   });
 
   it("flags salary shortfall even for small deltas", () => {
@@ -67,7 +69,9 @@ describe("assessPlanDeterministically", () => {
     );
 
     expect(result.isSalaryEligible).toBe(false);
-    expect(result.warnings.some((warning) => warning.includes("200 EUR"))).toBe(true);
+    expect(result.warningMessages.some((warning) => warning.includes("Gap is 200 EUR"))).toBe(
+      true,
+    );
   });
 
   it("returns missing-data response when destination-role data is absent", () => {
@@ -85,6 +89,24 @@ describe("assessPlanDeterministically", () => {
     );
 
     expect(result.isDataAvailable).toBe(false);
-    expect(result.warnings[0]).toContain("No reference data available");
+    expect(result.message).toBe("No data available for this role-country combination");
+    expect(result.warningMessages[0]).toContain("No data available");
+  });
+
+  it("computes feasibility score within expected weighted bounds", () => {
+    const result = assessPlanDeterministically(
+      {
+        originCountry: "India",
+        destinationCountry: "Germany",
+        targetRole: "Senior Backend Engineer",
+        salaryExpectation: 49800,
+        salaryCurrencyCode: "EUR",
+        timelineMonths: 1,
+        requiresSponsorship: false,
+      },
+      baseMarketData,
+    );
+
+    expect(result.feasibilityScore).toBeLessThanOrEqual(35);
   });
 });

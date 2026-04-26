@@ -3,9 +3,10 @@ import jwt from "jsonwebtoken";
 import request from "supertest";
 import { describe, expect, it } from "vitest";
 
+import { environment } from "../src/infrastructure/configuration/environment.js";
 import { authMiddleware } from "../src/infrastructure/http/auth-middleware.js";
 
-const secret = "development-insecure-secret";
+const secret = environment.jwtSecret;
 
 describe("auth middleware", () => {
   it("rejects protected route without token", async () => {
