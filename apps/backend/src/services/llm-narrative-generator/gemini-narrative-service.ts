@@ -12,16 +12,18 @@ export async function generateNarrativeWithGemini(
   input: BuildNarrativeInput,
 ): Promise<{ narrative: string; narrativeStatus: "generated" | "fallback" }> {
   if (!environment.geminiApiKey) {
+    console.warn("Gemini fallback: missing GEMINI_API_KEY");
     return {
       narrative: buildDeterministicFallbackNarrative(input),
       narrativeStatus: "fallback",
     };
   }
 
-  try {
-    const client = new GoogleGenerativeAI(environment.geminiApiKey);
-    const model = client.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const client = new GoogleGenerativeAI(environment.geminiApiKey);
+  const modelCandidates = environment.geminiModelCandidates;
+  const attemptErrors: string[] = [];
 
+  try {
     const prompt = [
       "You are an assistant generating a personalized but honest migration-career action narrative.",
       "Deterministic logic is used for correctness. LLM is used only for narrative and summary.",
@@ -31,26 +33,36 @@ export async function generateNarrativeWithGemini(
       `Action plan steps: ${JSON.stringify(input.rankedActionPlan)}`,
     ].join("\n");
 
-    const result = await model.generateContent(prompt);
-    const generatedText = result.response.text().trim();
+    for (const modelName of modelCandidates) {
+      try {
+        const model = client.getGenerativeModel({ model: modelName });
+        const result = await model.generateContent(prompt);
+        const generatedText = result.response.text().trim();
 
-    if (!generatedText) {
-      return {
-        narrative: buildDeterministicFallbackNarrative(input),
-        narrativeStatus: "fallback",
-      };
+        if (generatedText) {
+          return {
+            narrative: generatedText,
+            narrativeStatus: "generated",
+          };
+        }
+
+        attemptErrors.push(`${modelName}: empty response`);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "unknown model invocation error";
+        attemptErrors.push(`${modelName}: ${message}`);
+      }
     }
-
-    return {
-      narrative: generatedText,
-      narrativeStatus: "generated",
-    };
-  } catch {
-    return {
-      narrative: buildDeterministicFallbackNarrative(input),
-      narrativeStatus: "fallback",
-    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "unknown client initialization error";
+    attemptErrors.push(`client: ${message}`);
   }
+
+  console.warn(`Gemini fallback after model attempts: ${attemptErrors.join(" | ")}`);
+  return {
+    narrative: buildDeterministicFallbackNarrative(input),
+    narrativeStatus: "fallback",
+  };
 }
 
 function buildDeterministicFallbackNarrative(input: BuildNarrativeInput): string {

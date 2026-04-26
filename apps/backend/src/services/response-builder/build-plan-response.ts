@@ -16,13 +16,20 @@ interface BuildPlanResponseInput {
   rankedActionPlan: unknown;
   dataConfidenceSummary: unknown;
   llmNarrative: string;
-  llmNarrativeStatus: string;
   createdAt: Date;
   isDataAvailable?: boolean;
   message?: string;
 }
 
 export function buildPlanResponse(input: BuildPlanResponseInput) {
+  const fallbackNarrativePrefix =
+    "Based on deterministic checks, your current plan has been assessed with clear eligibility boundaries.";
+  const normalizedLlmNarrativeStatus =
+    input.llmNarrative.trim().length > 0 &&
+    !input.llmNarrative.startsWith(fallbackNarrativePrefix)
+      ? "generated"
+      : "fallback";
+
   return {
     id: input.id,
     userId: input.userId,
@@ -41,7 +48,7 @@ export function buildPlanResponse(input: BuildPlanResponseInput) {
     rankedActionPlan: input.rankedActionPlan,
     dataConfidenceSummary: input.dataConfidenceSummary,
     llmNarrative: input.llmNarrative,
-    llmNarrativeStatus: input.llmNarrativeStatus,
+    llmNarrativeStatus: normalizedLlmNarrativeStatus,
     createdAt: input.createdAt,
     isDataAvailable: input.isDataAvailable ?? true,
     message: input.message ?? null,

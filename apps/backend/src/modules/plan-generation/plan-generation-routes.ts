@@ -91,7 +91,6 @@ async function createPlanHandler(request: AuthenticatedRequest, response: Respon
     rankedActionPlan: savedPlan.rankedActionPlan,
     dataConfidenceSummary: savedPlan.dataConfidenceSummary,
     llmNarrative: savedPlan.llmNarrative,
-    llmNarrativeStatus: savedPlan.llmNarrativeStatus,
     createdAt: savedPlan.createdAt,
     isDataAvailable: deterministicAssessment.isDataAvailable,
     message: deterministicAssessment.message,

@@ -133,11 +133,11 @@ async function main() {
       {
         marketDataId: ukPm.id,
         fieldName: "work_authorization_routes",
-        confidence: "placeholder",
+        confidence: "estimated",
       },
-      { marketDataId: ukPm.id, fieldName: "credentials", confidence: "estimated" },
+      { marketDataId: ukPm.id, fieldName: "credentials", confidence: "placeholder" },
       { marketDataId: ukPm.id, fieldName: "timeline", confidence: "estimated" },
-      { marketDataId: ukPm.id, fieldName: "market_demand", confidence: "estimated" },
+      { marketDataId: ukPm.id, fieldName: "market_demand", confidence: "placeholder" },
     ],
   });
 }

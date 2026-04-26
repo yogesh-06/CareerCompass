@@ -24,10 +24,10 @@ CareerCompass is a monorepo web application that generates personalized migratio
 - `POST /api/v1/auth/register`
 - `POST /api/v1/auth/login`
 - `GET /api/v1/auth/me`
-- `POST /api/v1/plans/generate`
+- `POST /api/v1/plans`
 - `GET /api/v1/plans`
 - `GET /api/v1/plans/:planId`
-- `POST /api/v1/plans` (returns explicit message, generation endpoint auto-saves)
+- `POST /api/v1/plans/generate` (backward-compatible alias)
 - `GET /api/v1/health`
 
 ## Environment Variables
@@ -38,6 +38,7 @@ Create `apps/backend/.env` from `apps/backend/.env.example`:
 - `DATABASE_URL=postgresql://postgres:postgres@localhost:5432/careercompass`
 - `JWT_SECRET=replace_with_secure_secret`
 - `GEMINI_API_KEY=your_gemini_key`
+- `GEMINI_MODEL_CANDIDATES=gemini-2.0-flash,gemini-1.5-flash-latest,gemini-1.5-pro-latest`
 
 Create `apps/frontend/.env` from `apps/frontend/.env.example`:
 
@@ -64,6 +65,26 @@ Create `apps/frontend/.env` from `apps/frontend/.env.example`:
 - Run backend tests:
   - `npm run test -w @careercompass/backend`
 
+## Scenario Verification
+
+- Scenario A payload:
+  - `{"originCountry":"India","destinationCountry":"Germany","targetRole":"Senior Backend Engineer","salaryExpectation":45000,"salaryCurrencyCode":"EUR","timelineMonths":12,"requiresSponsorship":true}`
+- Scenario B payload:
+  - `{"originCountry":"India","destinationCountry":"United Kingdom","targetRole":"Product Manager","salaryExpectation":60000,"salaryCurrencyCode":"GBP","timelineMonths":6,"requiresSponsorship":false}`
+- Generate plan via authenticated endpoint:
+  - `POST /api/v1/plans`
+
+## Troubleshooting
+
+- If all plans return no-data:
+  - re-run seed command: `npm run prisma:seed -w @careercompass/backend`
+- If `llmNarrativeStatus` remains `fallback`:
+  - rotate and replace `GEMINI_API_KEY`
+  - verify at least one model in `GEMINI_MODEL_CANDIDATES` is valid for your key
+  - check backend logs for per-model failure reasons
+- If deterministic checks look wrong:
+  - confirm `DestinationRoleMarketData` rows exist for the role-country combination.
+
 ## Assignment Coverage
 
 - Deterministic handling of salary, timeline, and missing-data correctness checks
@@ -71,3 +92,16 @@ Create `apps/frontend/.env` from `apps/frontend/.env.example`:
 - Data confidence summary returned with plan response
 - Auth-protected endpoints for generation and saved plan retrieval
 - Scenario-oriented seeded data for Germany/Senior Backend Engineer and UK/Product Manager
+
+## Data Confidence Semantics
+
+- `estimated`: field is modeled and backed by synthetic/assumed dataset values
+- `placeholder`: field is intentionally not modeled in current MVP or missing
+- `verified`: reserved for externally validated/trusted data sources
+
+Current MVP mapping for evaluator transparency:
+- `salary`: estimated
+- `timeline`: estimated
+- `work_authorization_routes`: estimated
+- `credentials`: placeholder
+- `market_demand`: placeholder

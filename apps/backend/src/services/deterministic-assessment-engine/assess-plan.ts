@@ -2,8 +2,6 @@ import type {
   DeterministicAssessmentResult,
   PlanGenerationInput,
 } from "./types.js";
-import { buildDataConfidenceSummary } from "./data-confidence.js";
-import { calculateFeasibilityScore } from "./feasibility-score.js";
 
 type WorkAuthorizationRouteRecord = {
   sponsorshipRequired: boolean;
@@ -74,11 +72,19 @@ export function assessPlanDeterministically(
     ? 0
     : Math.min(...effectiveMarketData.workAuthorizationRoutes.map((route) => route.processingTimeMax));
   const minimumTimeToStart = effectiveMarketData.typicalHiringDurationMonths + requiredVisaProcessingMonths;
-  const isTimelineFeasible = input.timelineMonths >= minimumTimeToStart;
+  const isTimelineFeasibleByVisaOnly = input.timelineMonths >= requiredVisaProcessingMonths;
+  const isTimelineFeasibleByTotalStart = input.timelineMonths >= minimumTimeToStart;
+  const isTimelineFeasible = isTimelineFeasibleByVisaOnly && isTimelineFeasibleByTotalStart;
 
-  if (!isTimelineFeasible) {
+  if (!isTimelineFeasibleByVisaOnly && !isDomesticTransition) {
     warningMessages.push(
-      `Timeline conflict: process requires ${minimumTimeToStart} months but user expects ${input.timelineMonths} months.`,
+      `Timeline conflict: process requires ${requiredVisaProcessingMonths} months but user expects ${input.timelineMonths} months.`,
+    );
+  }
+
+  if (!isTimelineFeasibleByTotalStart) {
+    warningMessages.push(
+      `Timeline conflict: total estimated time-to-start is ${minimumTimeToStart} months including hiring and authorization steps.`,
     );
   }
 
@@ -111,8 +117,14 @@ export function assessPlanDeterministically(
     ? "Prioritize employers with documented sponsorship history and confirm route timelines before interview loops."
     : "Prioritize direct-hiring employers and emphasize immediate work authorization in your profile.";
 
+  const roleSpecificSkillStep = buildRoleSpecificSkillStep(
+    roleKeyword,
+    destinationKeyword,
+    effectiveMarketData.requiredQualifications,
+  );
+
   const rankedActionPlan = [
-    `Strengthen ${roleKeyword} capabilities required in ${destinationKeyword}, especially ${effectiveMarketData.requiredQualifications.slice(0, 2).join(" and ")}.`,
+    roleSpecificSkillStep,
     `Target employers in ${destinationKeyword} where ${roleKeyword} demand is active and tailor your CV with measurable backend/product outcomes.`,
     compensationAdvice,
     sponsorshipAdvice,
@@ -123,10 +135,10 @@ export function assessPlanDeterministically(
     hasSalaryData: effectiveMarketData.salaryMin > 0 && effectiveMarketData.salaryMedian > 0,
     hasTimelineData:
       effectiveMarketData.typicalHiringDurationMonths > 0 || requiredVisaProcessingMonths >= 0,
-    hasCredentialsData:
-      effectiveMarketData.requiredQualifications.length > 0 ||
-      effectiveMarketData.languageRequirements.length > 0,
-    hasMarketDemandData: Boolean(effectiveMarketData.marketDemandLevel),
+    // Credentials and market demand are not fully modeled in this MVP,
+    // so they remain placeholder unless explicitly upgraded later.
+    hasCredentialsData: false,
+    hasMarketDemandData: false,
     hasWorkAuthorizationRoutesData: isDomesticTransition
       ? false
       : effectiveMarketData.workAuthorizationRoutes.length > 0,
@@ -139,7 +151,6 @@ export function assessPlanDeterministically(
 
   if (warningMessages.length === 0 && feasibilityScore === 100) {
     warningMessages.push("Market competition is high; strong profile required.");
-    feasibilityScore = 95;
   }
 
   return {
@@ -157,6 +168,91 @@ export function assessPlanDeterministically(
   };
 }
 
+function buildRoleSpecificSkillStep(
+  roleKeyword: string,
+  destinationKeyword: string,
+  requiredQualifications: string[],
+): string {
+  const normalizedRole = roleKeyword.toLowerCase();
+
+  if (normalizedRole.includes("backend")) {
+    return `Strengthen backend system design and distributed architecture depth required for ${roleKeyword} opportunities in ${destinationKeyword}, especially ${requiredQualifications.slice(0, 2).join(" and ")}.`;
+  }
+
+  if (normalizedRole.includes("product manager")) {
+    return `Strengthen product discovery, prioritization, and cross-functional stakeholder leadership expected for ${roleKeyword} roles in ${destinationKeyword}, especially ${requiredQualifications.slice(0, 2).join(" and ")}.`;
+  }
+
+  return `Strengthen ${roleKeyword} capabilities required in ${destinationKeyword}, especially ${requiredQualifications.slice(0, 2).join(" and ")}.`;
+}
+
+type ConfidenceRecord = {
+  fieldName: string;
+  confidence: string;
+};
+
+type DataConfidenceContext = {
+  hasSalaryData: boolean;
+  hasTimelineData: boolean;
+  hasCredentialsData: boolean;
+  hasMarketDemandData: boolean;
+  hasWorkAuthorizationRoutesData: boolean;
+};
+
+function buildDataConfidenceSummary(
+  fieldConfidence: ConfidenceRecord[] | undefined,
+  context: DataConfidenceContext,
+): Record<string, string> {
+  const summary: Record<string, string> = {
+    salary: context.hasSalaryData ? "estimated" : "placeholder",
+    timeline: context.hasTimelineData ? "estimated" : "placeholder",
+    credentials: context.hasCredentialsData ? "estimated" : "placeholder",
+    market_demand: context.hasMarketDemandData ? "estimated" : "placeholder",
+    work_authorization_routes: context.hasWorkAuthorizationRoutesData
+      ? "estimated"
+      : "placeholder",
+  };
+
+  for (const record of fieldConfidence ?? []) {
+    if (!(record.fieldName in summary)) {
+      continue;
+    }
+    if (record.confidence === "verified") {
+      summary[record.fieldName] = "verified";
+      continue;
+    }
+    if (record.confidence === "placeholder") {
+      summary[record.fieldName] = "placeholder";
+      continue;
+    }
+    if (record.confidence === "estimated") {
+      summary[record.fieldName] = "estimated";
+    }
+  }
+
+  return summary;
+}
+
+function calculateFeasibilityScore(input: {
+  isSalaryEligible: boolean;
+  isTimelineFeasible: boolean;
+  isAuthorizationCompatible: boolean;
+}): number {
+  let score = 100;
+
+  if (!input.isSalaryEligible) {
+    score -= 40;
+  }
+  if (!input.isTimelineFeasible) {
+    score -= 30;
+  }
+  if (!input.isAuthorizationCompatible) {
+    score -= 30;
+  }
+
+  return Math.max(0, Math.min(100, score));
+}
+
 function buildDomesticAssumption(input: PlanGenerationInput): DestinationWithRelations {
   return {
     destinationCountry: input.destinationCountry,
@@ -171,8 +267,8 @@ function buildDomesticAssumption(input: PlanGenerationInput): DestinationWithRel
     fieldConfidence: [
       { fieldName: "salary", confidence: "estimated" },
       { fieldName: "timeline", confidence: "estimated" },
-      { fieldName: "credentials", confidence: "estimated" },
-      { fieldName: "market_demand", confidence: "estimated" },
+      { fieldName: "credentials", confidence: "placeholder" },
+      { fieldName: "market_demand", confidence: "placeholder" },
       { fieldName: "work_authorization_routes", confidence: "placeholder" },
     ],
   };

@@ -33,6 +33,28 @@ const baseMarketData = {
   fieldConfidence: [{ id: "c1", marketDataId: "m1", fieldName: "salary", confidence: "estimated" }],
 };
 
+const productManagerUkData = {
+  ...baseMarketData,
+  destinationCountry: "United Kingdom",
+  targetRole: "Product Manager",
+  salaryMin: 55000,
+  salaryMedian: 80000,
+  requiredQualifications: ["Product discovery", "Cross-functional leadership"],
+  languageRequirements: ["English C1"],
+  workAuthorizationRoutes: [
+    {
+      id: "route-id-2",
+      marketDataId: "market-data-id-2",
+      name: "Direct Hiring Route",
+      type: "employment",
+      sponsorshipRequired: false,
+      processingTimeMin: 1,
+      processingTimeMax: 2,
+      eligibilityCriteria: ["No sponsorship constraints"],
+    },
+  ],
+};
+
 describe("assessPlanDeterministically", () => {
   it("flags timeline conflict when requested timeline is too short", () => {
     const result = assessPlanDeterministically(
@@ -107,6 +129,101 @@ describe("assessPlanDeterministically", () => {
       baseMarketData,
     );
 
-    expect(result.feasibilityScore).toBeLessThanOrEqual(35);
+    expect(result.feasibilityScore).toBe(30);
+  });
+
+  it("produces meaningfully different scenario output for UK product manager", () => {
+    const result = assessPlanDeterministically(
+      {
+        originCountry: "India",
+        destinationCountry: "United Kingdom",
+        targetRole: "Product Manager",
+        salaryExpectation: 60000,
+        salaryCurrencyCode: "GBP",
+        timelineMonths: 6,
+        requiresSponsorship: false,
+      },
+      productManagerUkData,
+    );
+
+    expect(result.isSalaryEligible).toBe(true);
+    expect(result.isAuthorizationCompatible).toBe(true);
+    expect(result.rankedActionPlan.some((step) => step.includes("product discovery"))).toBe(
+      true,
+    );
+  });
+
+  it("returns placeholder confidence when fields are not modeled", () => {
+    const result = assessPlanDeterministically(
+      {
+        originCountry: "India",
+        destinationCountry: "France",
+        targetRole: "Data Scientist",
+        salaryExpectation: 60000,
+        salaryCurrencyCode: "EUR",
+        timelineMonths: 12,
+        requiresSponsorship: false,
+      },
+      null,
+    );
+
+    expect(result.dataConfidenceSummary.salary).toBe("placeholder");
+    expect(result.dataConfidenceSummary.work_authorization_routes).toBe("placeholder");
+  });
+
+  it("maps modeled and non-modeled confidence fields correctly", () => {
+    const result = assessPlanDeterministically(
+      {
+        originCountry: "India",
+        destinationCountry: "Germany",
+        targetRole: "Senior Backend Engineer",
+        salaryExpectation: 45000,
+        salaryCurrencyCode: "EUR",
+        timelineMonths: 12,
+        requiresSponsorship: true,
+      },
+      {
+        ...baseMarketData,
+        fieldConfidence: [
+          { fieldName: "salary", confidence: "estimated" },
+          { fieldName: "timeline", confidence: "estimated" },
+          {
+            fieldName: "work_authorization_routes",
+            confidence: "estimated",
+          },
+          { fieldName: "credentials", confidence: "placeholder" },
+          { fieldName: "market_demand", confidence: "placeholder" },
+        ],
+      },
+    );
+
+    expect(result.dataConfidenceSummary.salary).toBe("estimated");
+    expect(result.dataConfidenceSummary.timeline).toBe("estimated");
+    expect(result.dataConfidenceSummary.work_authorization_routes).toBe("estimated");
+    expect(result.dataConfidenceSummary.credentials).toBe("placeholder");
+    expect(result.dataConfidenceSummary.market_demand).toBe("placeholder");
+  });
+
+  it("handles India to India as domestic transition without authorization failure", () => {
+    const result = assessPlanDeterministically(
+      {
+        originCountry: "India",
+        destinationCountry: "India",
+        targetRole: "Backend Engineer",
+        salaryExpectation: 1200000,
+        salaryCurrencyCode: "INR",
+        timelineMonths: 3,
+        requiresSponsorship: true,
+      },
+      null,
+    );
+
+    expect(result.isDataAvailable).toBe(true);
+    expect(result.isAuthorizationCompatible).toBe(true);
+    expect(
+      result.warningMessages.some((warning) =>
+        warning.includes("domestic transition; no visa or sponsorship required"),
+      ),
+    ).toBe(true);
   });
 });
