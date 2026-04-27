@@ -32,7 +32,7 @@ CareerCompass is a monorepo web application that generates personalized migratio
 
 ## Environment Variables
 
-Create `apps/backend/.env` from `apps/backend/.env.example`:
+Create `apps/backend/.env`
 
 - `PORT=4000`
 - `DATABASE_URL=postgresql://postgres:postgres@localhost:5432/careercompass`
@@ -40,7 +40,7 @@ Create `apps/backend/.env` from `apps/backend/.env.example`:
 - `GEMINI_API_KEY=your_gemini_key`
 - `GEMINI_MODEL_CANDIDATES=gemini-2.0-flash,gemini-1.5-flash-latest,gemini-1.5-pro-latest`
 
-Create `apps/frontend/.env` from `apps/frontend/.env.example`:
+Create `apps/frontend/.env`:
 
 - `VITE_API_BASE_URL=http://localhost:4000/api/v1`
 
@@ -100,6 +100,7 @@ Create `apps/frontend/.env` from `apps/frontend/.env.example`:
 - `verified`: reserved for externally validated/trusted data sources
 
 Current MVP mapping for evaluator transparency:
+
 - `salary`: estimated
 - `timeline`: estimated
 - `work_authorization_routes`: estimated
