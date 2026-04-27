@@ -1,15 +1,19 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-import { getApiErrorMessage, httpClient, setAccessToken } from "../api/http-client";
+import {
+  getApiErrorMessage,
+  httpClient,
+  setAccessToken,
+} from "../api/http-client";
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("candidate@example.com");
-  const [password, setPassword] = useState("Password@123");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
+  const [email, setEmail] = useState<string>("candidate@example.com");
+  const [password, setPassword] = useState<string>("Password@123");
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string>("");
+  const [successMessage, setSuccessMessage] = useState<string>("");
 
   async function handleLogin() {
     if (!email.trim() || !password.trim()) {
@@ -21,15 +25,22 @@ export function LoginPage() {
       setIsSubmitting(true);
       setErrorMessage("");
       setSuccessMessage("");
-      const response = await httpClient.post<{ accessToken: string }>("/auth/login", {
-        email,
-        password,
-      });
+      const response = await httpClient.post<{ accessToken: string }>(
+        "/auth/login",
+        {
+          email,
+          password,
+        },
+      );
       setAccessToken(response.data.accessToken);
-      setSuccessMessage("Logged in successfully. Redirecting to plan generation...");
+      setSuccessMessage(
+        "Logged in successfully. Redirecting to plan generation...",
+      );
       setTimeout(() => navigate("/generate"), 700);
     } catch (error) {
-      setErrorMessage(getApiErrorMessage(error, "Login failed. Please try again."));
+      setErrorMessage(
+        getApiErrorMessage(error, "Login failed. Please try again."),
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -60,7 +71,11 @@ export function LoginPage() {
             type="password"
           />
         </label>
-        <button className="primary-button" onClick={handleLogin} disabled={isSubmitting}>
+        <button
+          className="primary-button"
+          onClick={handleLogin}
+          disabled={isSubmitting}
+        >
           {isSubmitting ? "Logging in..." : "Login"}
         </button>
         <p className="helper-text auth-switch-text">
@@ -70,7 +85,9 @@ export function LoginPage() {
           </Link>
         </p>
         {errorMessage ? <p className="error-text">{errorMessage}</p> : null}
-        {successMessage ? <p className="success-text">{successMessage}</p> : null}
+        {successMessage ? (
+          <p className="success-text">{successMessage}</p>
+        ) : null}
       </div>
     </section>
   );

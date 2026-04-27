@@ -22,8 +22,8 @@ const initialForm: PlanPayload = {
 export function GeneratePlanPage() {
   const [formState, setFormState] = useState<PlanPayload>(initialForm);
   const [result, setResult] = useState<Record<string, unknown> | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string>("");
 
   async function generatePlan() {
     try {
@@ -155,7 +155,11 @@ export function GeneratePlanPage() {
           </label>
         </div>
 
-        <button className="primary-button submit-button" onClick={generatePlan} disabled={isSubmitting}>
+        <button
+          className="primary-button submit-button"
+          onClick={generatePlan}
+          disabled={isSubmitting}
+        >
           {isSubmitting ? "Generating..." : "Generate and Save Plan"}
         </button>
         {errorMessage ? <p className="error-text">{errorMessage}</p> : null}

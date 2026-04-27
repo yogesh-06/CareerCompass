@@ -5,11 +5,11 @@ import { getApiErrorMessage, httpClient } from "../api/http-client";
 
 export function RegisterPage() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("candidate@example.com");
-  const [password, setPassword] = useState("Password@123");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
+  const [email, setEmail] = useState<string>("candidate@example.com");
+  const [password, setPassword] = useState<string>("Password@123");
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string>("");
+  const [successMessage, setSuccessMessage] = useState<string>("");
 
   async function handleRegister() {
     if (!email.trim() || !password.trim()) {
@@ -22,11 +22,16 @@ export function RegisterPage() {
       setErrorMessage("");
       setSuccessMessage("");
       await httpClient.post("/auth/register", { email, password });
-      setSuccessMessage("Account created successfully. Redirecting to login...");
+      setSuccessMessage(
+        "Account created successfully. Redirecting to login...",
+      );
       setTimeout(() => navigate("/login"), 700);
     } catch (error) {
       setErrorMessage(
-        getApiErrorMessage(error, "Registration failed. Please use a different email."),
+        getApiErrorMessage(
+          error,
+          "Registration failed. Please use a different email.",
+        ),
       );
     } finally {
       setIsSubmitting(false);
@@ -36,7 +41,9 @@ export function RegisterPage() {
   return (
     <section className="panel md:max-w-lg">
       <h2 className="panel-title">Create Account</h2>
-      <p className="panel-subtitle">Register first, then sign in to generate plans.</p>
+      <p className="panel-subtitle">
+        Register first, then sign in to generate plans.
+      </p>
       <div className="form-grid">
         <label className="field-label">
           Email
@@ -58,7 +65,11 @@ export function RegisterPage() {
             type="password"
           />
         </label>
-        <button className="primary-button" onClick={handleRegister} disabled={isSubmitting}>
+        <button
+          className="primary-button"
+          onClick={handleRegister}
+          disabled={isSubmitting}
+        >
           {isSubmitting ? "Creating account..." : "Register"}
         </button>
         <p className="helper-text auth-switch-text">
@@ -68,7 +79,9 @@ export function RegisterPage() {
           </Link>
         </p>
         {errorMessage ? <p className="error-text">{errorMessage}</p> : null}
-        {successMessage ? <p className="success-text">{successMessage}</p> : null}
+        {successMessage ? (
+          <p className="success-text">{successMessage}</p>
+        ) : null}
       </div>
     </section>
   );
