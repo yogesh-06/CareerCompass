@@ -19,3 +19,5 @@ EXPOSE 10000
 
 # Start backend workspace
 CMD ["npm", "start", "-w", "@careercompass/backend"]
+
+RUN npx prisma db seed --schema=apps/backend/prisma/schema.prisma || true
