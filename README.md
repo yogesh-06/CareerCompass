@@ -2,6 +2,11 @@
 
 CareerCompass is a monorepo web application that generates personalized migration-career action plans using deterministic eligibility checks and Gemini-based narrative generation.
 
+## Deployments
+
+- Frontend: https://careercompass-frontend-p8re.onrender.com/generate
+- Backend: https://careercompass-backend-9kwf.onrender.com
+
 ## Tech Stack
 
 - Frontend: React + Vite + TypeScript
